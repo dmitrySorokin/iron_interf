@@ -42,6 +42,7 @@ class IDSCamera(object):
         self.camera = Camera()
         self.camera.init()
         self.camera.set_colormode(ueye.IS_CM_SENSOR_RAW8)
+        #self.camera.set_aoi(0, 0, h_points, w_points)
         self.camera.alloc()
         self.camera.capture_video()
         self.thread = FrameThread(self.camera, self.image_handle)
@@ -67,13 +68,3 @@ class IDSCamera(object):
 
         print('state_calc_time = ', state_calc_end - state_calc_start)
         return images, tot_intens
-
-
-#camera = IDSCamera(16)
-#state, tot_intens = camera.calc_state()
-#print(state.shape, min(tot_intens), max(tot_intens))
-
-#state, tot_intens = camera.calc_state()
-#print(state.shape, min(tot_intens), max(tot_intens))
-
-#camera.stop()

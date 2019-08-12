@@ -31,7 +31,7 @@
 #------------------------------------------------------------------------------
 
 from pyueye import ueye
-from pyueye_example_utils import (uEyeException, Rect, get_bits_per_pixel,
+from .pyueye_example_utils import (uEyeException, Rect, get_bits_per_pixel,
                                   ImageBuffer, check)
 
 class Camera:
