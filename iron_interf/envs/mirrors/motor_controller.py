@@ -20,7 +20,6 @@ def move_relative(motor_id, value):
 
 def move_absolute(motor_id, value):
     move_motor_cmd = '{}PA{}'.format(motor_id, value)
-    print(move_motor_cmd)
     _controller.command(move_motor_cmd)
 
 
