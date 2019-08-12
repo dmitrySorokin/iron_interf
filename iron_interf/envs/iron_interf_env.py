@@ -1,18 +1,16 @@
 import gym
 from matplotlib import pyplot as plt
-from math import *
-from cmath import *
 import numpy as np
 import time as tm
-from scipy import optimize
 
 from .mirrors.motor_controller import get_home_position, wait_for_motor, move_absolute
+from .camera.ids_camera import IDSCamera
 
 
 class IronInterfEnv(gym.Env):
     n_points = 64
     n_frames = 16
-    n_actions = 2
+    n_actions = 4
 
     # mirror screw step l / L, (ratio of delta screw length to vertical distance)
     max_mirror_screw_value = 10000
@@ -39,6 +37,8 @@ class IronInterfEnv(gym.Env):
         self.mirror1_screw_y = get_home_position(IronInterfEnv.mirror2motor['mirror1_screw_y'])
         self.mirror2_screw_x = get_home_position(IronInterfEnv.mirror2motor['mirror2_screw_x'])
         self.mirror2_screw_y = get_home_position(IronInterfEnv.mirror2motor['mirror2_screw_y'])
+
+        self.camera = IDSCamera(IronInterfEnv.n_frames, IronInterfEnv.n_points, IronInterfEnv.n_points)
 
         self.state = None
         self.n_steps = None
@@ -77,9 +77,10 @@ class IronInterfEnv(gym.Env):
             self._take_action(action_id, action_value)
         self._wait_for_motors()
 
-        # TODO: calc reward
+        self.state, tot_intens = self.camera.calc_state()
+        reward = self._calc_reward(tot_intens)
 
-        return self.state, None, self.game_over(), self.info
+        return self.state, reward, self.game_over(), self.info
 
     def reset(self, actions=None):
         self.n_steps = 0
@@ -98,8 +99,8 @@ class IronInterfEnv(gym.Env):
         self._wait_for_motors()
 
         # TODO: calc state and visib
-        self.state = None
-        self.visib = None
+        self.state, tot_intens = self.camera.calc_state()
+        self.visib = self._calc_visib(tot_intens)
 
         return self.state
 
@@ -178,8 +179,3 @@ class IronInterfEnv(gym.Env):
     def game_over(self):
         return self.visib > IronInterfEnv.done_visibility or \
                self.n_steps >= IronInterfEnv.max_steps
-
-    def _calc_state(self):
-        # TODO: get images form camera, rescale and calc visib
-
-        return None

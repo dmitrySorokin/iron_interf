@@ -1,5 +1,5 @@
-from pyueye_example_camera import Camera
-from pyueye_example_utils import FrameThread
+from .pyueye_example_camera import Camera
+from .pyueye_example_utils import FrameThread
 import threading
 import time
 
@@ -37,7 +37,7 @@ class _ImageHandle(object):
 
 
 class IDSCamera(object):
-    def __init__(self, n_frames):
+    def __init__(self, n_frames, h_points, w_points):
         self.image_handle = _ImageHandle(n_frames)
         self.camera = Camera()
         self.camera.init()
@@ -69,11 +69,11 @@ class IDSCamera(object):
         return images, tot_intens
 
 
-camera = IDSCamera(16)
-state, tot_intens = camera.calc_state()
-print(state.shape, min(tot_intens), max(tot_intens))
+#camera = IDSCamera(16)
+#state, tot_intens = camera.calc_state()
+#print(state.shape, min(tot_intens), max(tot_intens))
 
-state, tot_intens = camera.calc_state()
-print(state.shape, min(tot_intens), max(tot_intens))
+#state, tot_intens = camera.calc_state()
+#print(state.shape, min(tot_intens), max(tot_intens))
 
-camera.stop()
+#camera.stop()
