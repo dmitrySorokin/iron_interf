@@ -15,13 +15,14 @@ import numpy as np
 class _ImageHandle(object):
     def __init__(self, capacity=16):
         self.images = []
+        self.last_image = None
         self.is_started = False
         self.capacity = capacity
 
     def handle(self, image_data):
+        self.last_image = image_data.as_1d_image()
         if self.is_started and len(self.images) < self.capacity:
-            image = image_data.as_1d_image()
-            self.images.append(image)
+            self.images.append(self.last_image)
         image_data.unlock()
 
     def reset(self):
@@ -34,6 +35,12 @@ class _ImageHandle(object):
 
     def start(self):
         self.is_started = True
+
+    def image(self):
+        threading.Lock()
+        while self.last_image is None:
+            pass
+        return self.last_image
 
 
 class IDSCamera(object):
@@ -48,6 +55,7 @@ class IDSCamera(object):
         self.thread = FrameThread(self.camera, self.image_handle)
         self.thread.timeout = 100
         self.thread.start()
+        self.camera.set_exposure(0.1)
 
     def stop(self):
         self.thread.stop()
@@ -68,3 +76,6 @@ class IDSCamera(object):
 
         print('state_calc_time = ', state_calc_end - state_calc_start)
         return images, tot_intens
+
+    def image(self):
+        return self.image_handle.image()

@@ -101,6 +101,16 @@ class Camera:
 
         return ueye.is_AOI(self.h_cam, ueye.IS_AOI_IMAGE_SET_AOI, rect_aoi, ueye.sizeof(rect_aoi))
 
+    def set_exposure(self, value):
+        ms = ueye.DOUBLE(value)
+        return ueye.is_Exposure(self.h_cam, ueye.IS_EXPOSURE_CMD_SET_EXPOSURE, ms, ueye.sizeof(ms))
+
+    def get_exposure(self):
+        ms = ueye.DOUBLE(20)
+        print(ms)
+        ueye.is_Exposure(self.h_cam, ueye.IS_EXPOSURE_CMD_GET_EXPOSURE, ms, ueye.sizeof(ms))
+        return ms
+
     def capture_video(self, wait=False):
         wait_param = ueye.IS_WAIT if wait else ueye.IS_DONT_WAIT
         return ueye.is_CaptureVideo(self.h_cam, wait_param)

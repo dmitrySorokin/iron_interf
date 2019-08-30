@@ -27,6 +27,10 @@ def get_home_position(motor_id):
     return int(_controller.command('{}DH?'.format(motor_id))[2:])
 
 
+def get_position(motor_id):
+    return int(_controller.command('{}TP?'.format(motor_id))[2:])
+
+
 def set_home_position(motor_id, value):
     _controller.command('{}DH{}'.format(motor_id, value))
 
