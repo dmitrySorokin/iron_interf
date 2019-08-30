@@ -107,7 +107,6 @@ class Camera:
 
     def get_exposure(self):
         ms = ueye.DOUBLE(20)
-        print(ms)
         ueye.is_Exposure(self.h_cam, ueye.IS_EXPOSURE_CMD_GET_EXPOSURE, ms, ueye.sizeof(ms))
         return ms
 
