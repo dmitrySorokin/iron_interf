@@ -21,6 +21,7 @@ class _ImageHandle(object):
 
     def handle(self, image_data):
         self.last_image = image_data.as_1d_image()
+        self.last_image = self.last_image[:, 128: 1024 - 128]
         if self.is_started and len(self.images) < self.capacity:
             self.images.append(self.last_image)
         image_data.unlock()
@@ -53,9 +54,10 @@ class IDSCamera(object):
         self.camera.alloc()
         self.camera.capture_video()
         self.thread = FrameThread(self.camera, self.image_handle)
-        self.thread.timeout = 100
+        self.thread.timeout = 200
         self.thread.start()
         self.camera.set_exposure(0.1)
+
 
     def stop(self):
         self.thread.stop()
@@ -64,18 +66,17 @@ class IDSCamera(object):
         self.camera.exit()
 
     def calc_state(self):
-        state_calc_start = time.clock()
         self.image_handle.start()
         while not self.image_handle.is_ready():
             pass
         images = np.array(self.image_handle.images)
         self.image_handle.reset()
-        state_calc_end = time.clock()
 
         tot_intens = [np.sum(image) for image in images]
 
-        print('state_calc_time = ', state_calc_end - state_calc_start)
         return images, tot_intens
 
     def image(self):
+        #aoi = self.camera.get_aoi()
+        #print(aoi.x, aoi.y, aoi.height, aoi.width, type(aoi))
         return self.image_handle.image()

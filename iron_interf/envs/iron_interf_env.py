@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import time as tm
 
-from .mirrors.motor_controller import get_position, wait_for_motor, move_absolute
+from .mirrors.motor_controller import get_position, get_home_position, set_home_position, wait_for_motor, move_absolute
 from .camera.ids_camera import IDSCamera
 
 
@@ -13,7 +13,7 @@ class IronInterfEnv(gym.Env):
     n_actions = 4
 
     # mirror screw step l / L, (ratio of delta screw length to vertical distance)
-    max_mirror_screw_value = 10000
+    max_mirror_screw_value = 5000
 
     metadata = {'render.modes': ['human', 'rgb_array']}
     reward_range = (0, 1)
@@ -37,6 +37,10 @@ class IronInterfEnv(gym.Env):
         self.init_mirror1_screw_y = get_position(IronInterfEnv.mirror2motor['mirror1_screw_y'])
         self.init_mirror2_screw_x = get_position(IronInterfEnv.mirror2motor['mirror2_screw_x'])
         self.init_mirror2_screw_y = get_position(IronInterfEnv.mirror2motor['mirror2_screw_y'])
+
+        for key in IronInterfEnv.mirror2motor:
+            motor_id = IronInterfEnv.mirror2motor[key]
+            print('{}, home {}; current {}'.format(key, get_home_position(motor_id), get_position(motor_id)))
 
         self.mirror1_screw_x = 0
         self.mirror1_screw_y = 0
@@ -83,7 +87,10 @@ class IronInterfEnv(gym.Env):
             self._take_action(action_id, action_value)
         self._wait_for_motors()
 
+        start = tm.clock()
         self.state, tot_intens = self.camera.calc_state()
+        end = tm.clock()
+        self.info['state_calc_time'] = end - start
         reward = self._calc_reward(tot_intens)
 
         return self.state, reward, self.game_over(), self.info
@@ -115,7 +122,7 @@ class IronInterfEnv(gym.Env):
         if mode == 'rgb_array':
             img = self.camera.image()
             return np.array([img])
-            #return self.state
+            return self.state
         elif mode == 'human':
             plt.imshow(self.state[0], vmin=0, vmax=4)
             plt.ion()
@@ -192,3 +199,6 @@ class IronInterfEnv(gym.Env):
     def game_over(self):
         return self.visib > IronInterfEnv.done_visibility or \
                self.n_steps >= IronInterfEnv.max_steps
+
+    def close(self):
+        self.camera.stop()
