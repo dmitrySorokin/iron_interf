@@ -83,9 +83,19 @@ class IronInterfEnv(gym.Env):
         #print('step ', actions)
         self.n_steps += 1
 
+        print('actions', actions)
+
         for action_id, action_value in enumerate(actions):
             self._take_action(action_id, action_value)
         self._wait_for_motors()
+
+        print('relative m1_x = {}, m1_y = {}, m2_x = {}, m2_y = {}'.format(
+            self.mirror1_screw_x, self.mirror1_screw_y, self.mirror2_screw_x, self.mirror2_screw_y)
+        )
+        print('absolute init_m1_x = {}, init_m1_y = {}, init_m2_x = {}, init_m2_y = {}'.format(
+            self.init_mirror1_screw_x, self.init_mirror1_screw_y, self.init_mirror2_screw_x, self.init_mirror2_screw_y)
+        )
+
 
         start = tm.clock()
         self.state, tot_intens = self.camera.calc_state()
@@ -140,33 +150,45 @@ class IronInterfEnv(gym.Env):
         :return:
         """
 
-        #print('relative ', self.mirror1_screw_x, self.mirror1_screw_y, self.mirror2_screw_x, self.mirror2_screw_y)
-        #print('absolute ', self.init_mirror1_screw_x, self.init_mirror1_screw_y, self.init_mirror2_screw_x, self.init_mirror2_screw_y)
-        #print('take action ', action, normalized_step_length)
-
         if action == 0:
             self.mirror1_screw_y = np.clip(self.mirror1_screw_y + normalized_step_length, -1, 1)
+            value = np.clip(
+                self.mirror1_screw_y * self.max_mirror_screw_value + self.init_mirror1_screw_y,
+                self.init_mirror1_screw_y - self.max_mirror_screw_value,
+                self.init_mirror1_screw_y + self.max_mirror_screw_value)
             move_absolute(
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_y'],
-                value=int(self.mirror1_screw_y * self.max_mirror_screw_value + self.init_mirror1_screw_y)
+                value=int(value)
             )
         elif action == 1:
             self.mirror1_screw_x = np.clip(self.mirror1_screw_x + normalized_step_length, -1, 1)
+            value = np.clip(
+                self.mirror1_screw_x * self.max_mirror_screw_value + self.init_mirror1_screw_x,
+                self.init_mirror1_screw_x - self.max_mirror_screw_value,
+                self.init_mirror1_screw_x + self.max_mirror_screw_value)
             move_absolute(
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_x'],
-                value=int(self.mirror1_screw_x * self.max_mirror_screw_value + self.init_mirror1_screw_x)
+                value=int(value)
             )
         elif action == 2:
             self.mirror2_screw_y = np.clip(self.mirror2_screw_y + normalized_step_length, -1, 1)
+            value = np.clip(
+                self.mirror2_screw_y * self.max_mirror_screw_value + self.init_mirror2_screw_y,
+                self.init_mirror2_screw_y - self.max_mirror_screw_value,
+                self.init_mirror2_screw_y + self.max_mirror_screw_value)
             move_absolute(
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_y'],
-                value=int(self.mirror2_screw_y * self.max_mirror_screw_value + self.init_mirror2_screw_y)
+                value=int(value)
             )
         elif action == 3:
             self.mirror2_screw_x = np.clip(self.mirror2_screw_x + normalized_step_length, -1, 1)
+            value = np.clip(
+                self.mirror2_screw_x * self.max_mirror_screw_value + self.init_mirror2_screw_x,
+                self.init_mirror2_screw_x - self.max_mirror_screw_value,
+                self.init_mirror2_screw_x + self.max_mirror_screw_value)
             move_absolute(
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_x'],
-                value=int(self.mirror2_screw_x * self.max_mirror_screw_value + self.init_mirror2_screw_x)
+                value=int(value)
             )
         else:
             assert False, 'unknown action = {}'.format(action)
