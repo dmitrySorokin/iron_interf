@@ -69,7 +69,10 @@ class IDSCamera(object):
         self.camera.exit()
 
     def calc_state(self):
+        begin_sync = time.time()
         self.wait_for_start()
+        end_sync = time.time()
+        print('SYNC_TIME', end_sync - begin_sync)
 
         begin_film = time.time()
         self.image_handle.start()

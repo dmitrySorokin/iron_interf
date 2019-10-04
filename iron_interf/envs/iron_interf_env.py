@@ -225,3 +225,13 @@ class IronInterfEnv(gym.Env):
 
     def close(self):
         self.camera.stop()
+
+    def save_state(self, path):
+        assert self.state is not None, 'IronInterf: can\'t save, state is None'
+        np.save(path, self.state)
+        np.save(path + '_handles', np.array([
+            self.mirror1_screw_y,
+            self.mirror1_screw_x,
+            self.mirror2_screw_y,
+            self.mirror2_screw_x
+        ]) * self.max_mirror_screw_value)
