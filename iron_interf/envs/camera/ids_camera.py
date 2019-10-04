@@ -2,6 +2,7 @@ from .pyueye_example_camera import Camera
 from .pyueye_example_utils import FrameThread
 import threading
 import time
+from .trigger import CameraTrigger
 
 from pyueye import ueye
 
@@ -20,6 +21,7 @@ class _ImageHandle(object):
         self.capacity = capacity
 
     def handle(self, image_data):
+        #print('handle image time', time.time())
         self.last_image = image_data.as_1d_image()
         self.last_image = self.last_image[:, 128: 1024 - 128]
         if self.is_started and len(self.images) < self.capacity:
@@ -57,7 +59,8 @@ class IDSCamera(object):
         self.thread.timeout = 200
         self.thread.start()
         self.camera.set_exposure(0.1)
-
+        self.trigger = CameraTrigger()
+        self.trigger.init()
 
     def stop(self):
         self.thread.stop()
@@ -66,11 +69,17 @@ class IDSCamera(object):
         self.camera.exit()
 
     def calc_state(self):
+        self.wait_for_start()
+
+        begin_film = time.time()
         self.image_handle.start()
+        print('start camera', begin_film)
         while not self.image_handle.is_ready():
             pass
         images = np.array(self.image_handle.images)
         self.image_handle.reset()
+        end_film = time.time()
+        print('camera time', end_film - begin_film)
 
         tot_intens = [np.sum(image) for image in images]
 
@@ -80,3 +89,10 @@ class IDSCamera(object):
         #aoi = self.camera.get_aoi()
         #print(aoi.x, aoi.y, aoi.height, aoi.width, type(aoi))
         return self.image_handle.image()
+
+    def wait_for_start(self):
+        for res in self.trigger.can_start():
+            if res:
+                print('============TRIGGERED===================')
+                break
+

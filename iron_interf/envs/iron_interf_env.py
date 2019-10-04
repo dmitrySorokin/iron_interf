@@ -15,7 +15,7 @@ class IronInterfEnv(gym.Env):
     # mirror screw step l / L, (ratio of delta screw length to vertical distance)
     max_mirror_screw_value = 5000
 
-    metadata = {'render.modes': ['human', 'rgb_array']}
+    metadata = {'render.modes': ['human', 'rgb_array', 'last_state']}
     reward_range = (0, 1)
 
     observation_space = gym.spaces.Box(low=0, high=4, shape=(n_frames, n_points, n_points), dtype=np.float64)
@@ -97,9 +97,9 @@ class IronInterfEnv(gym.Env):
         )
 
 
-        start = tm.clock()
+        start = tm.time()
         self.state, tot_intens = self.camera.calc_state()
-        end = tm.clock()
+        end = tm.time()
         self.info['state_calc_time'] = end - start
         reward = self._calc_reward(tot_intens)
 
@@ -132,6 +132,7 @@ class IronInterfEnv(gym.Env):
         if mode == 'rgb_array':
             img = self.camera.image()
             return np.array([img])
+        elif mode == 'last_state':
             return self.state
         elif mode == 'human':
             plt.imshow(self.state[0], vmin=0, vmax=4)
