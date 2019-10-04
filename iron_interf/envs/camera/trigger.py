@@ -6,7 +6,8 @@ import time
 
 class SerialPortReader(object):
     def __init__(self, name='/dev/ttyACM0'):
-        self.dev = serial.Serial(name)
+        self.dev = serial.Serial()
+        self.dev.setPort(name)
 
     def get_data(self):
         while True:
@@ -41,6 +42,7 @@ class CameraTrigger(object):
         self.triggered = False
 
     def init(self):
+        self.reader.open()
         begin = time.time()
         max_value = -1
         for value in self.reader.get_data():
@@ -51,8 +53,10 @@ class CameraTrigger(object):
 
         print('max_value', max_value)
         self.threshold *= max_value
+        self.reader.close()
 
     def can_start(self):
+        self.reader.open()
         self.reader.flush()
 
         for value in self.reader.get_data():

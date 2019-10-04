@@ -73,7 +73,6 @@ class IDSCamera(object):
 
         begin_film = time.time()
         self.image_handle.start()
-        print('start camera', begin_film)
         while not self.image_handle.is_ready():
             pass
         images = np.array(self.image_handle.images)
@@ -86,13 +85,11 @@ class IDSCamera(object):
         return images, tot_intens
 
     def image(self):
-        #aoi = self.camera.get_aoi()
-        #print(aoi.x, aoi.y, aoi.height, aoi.width, type(aoi))
         return self.image_handle.image()
 
     def wait_for_start(self):
         for res in self.trigger.can_start():
             if res:
-                print('============TRIGGERED===================')
                 break
+        self.trigger.stop()
 
