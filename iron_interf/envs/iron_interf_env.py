@@ -53,8 +53,12 @@ class IronInterfEnv(gym.Env):
         self.n_steps = None
         self.info = None
         self.visib = None
+        self.camera_enabled = True
 
         self._calc_reward = self._calc_reward_delta_visib
+
+    def enable_camera(self, enabled):
+        self.camera_enabled = enabled
 
     def set_calc_reward(self, method):
         if method == 'visib_minus_1':
@@ -96,9 +100,8 @@ class IronInterfEnv(gym.Env):
             self.init_mirror1_screw_x, self.init_mirror1_screw_y, self.init_mirror2_screw_x, self.init_mirror2_screw_y)
         )
 
-
         start = tm.time()
-        self.state, tot_intens = self.camera.calc_state()
+        self.state, tot_intens = self.calc_state()
         end = tm.time()
         self.info['state_calc_time'] = end - start
         reward = self._calc_reward(tot_intens)
@@ -122,8 +125,7 @@ class IronInterfEnv(gym.Env):
         # wait until actions are done
         self._wait_for_motors()
 
-        # TODO: calc state and visib
-        self.state, tot_intens = self.camera.calc_state()
+        self.state, tot_intens = self.calc_state()
         self.visib = self._calc_visib(tot_intens)
 
         return self.state
@@ -235,3 +237,8 @@ class IronInterfEnv(gym.Env):
             self.mirror2_screw_y,
             self.mirror2_screw_x
         ]) * self.max_mirror_screw_value)
+
+    def calc_state(self):
+        if self.camera_enabled:
+            return self.camera.calc_state()
+        return None, [1] * IronInterfEnv.n_frames
