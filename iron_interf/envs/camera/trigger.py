@@ -47,7 +47,9 @@ class CameraTrigger(object):
         max_value = -1
         for value in self.reader.get_data():
             print(value, 'time', time.time() - begin)
-            max_value = max(max_value, value)
+            # something strange appears
+            if value > max_value and value < 1000:
+                max_value = value
             if time.time() - begin > 5:
                 break
 
@@ -60,8 +62,6 @@ class CameraTrigger(object):
         self.reader.flush()
 
         for value in self.reader.get_data():
-            #print(value)
-
             self.buffer = self.buffer[1:] + [value]
             if value > self.threshold and self.buffer[0] - self.buffer[-1] > 0:
                 if not self.triggered:

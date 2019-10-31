@@ -58,7 +58,7 @@ class IDSCamera(object):
         self.thread = FrameThread(self.camera, self.image_handle)
         self.thread.timeout = 200
         self.thread.start()
-        self.camera.set_exposure(0.1)
+        self.camera.set_exposure(0.5)
         self.trigger = CameraTrigger()
         self.trigger.init()
 
