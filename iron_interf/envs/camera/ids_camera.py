@@ -62,6 +62,9 @@ class IDSCamera(object):
         self.trigger = CameraTrigger()
         self.trigger.init()
 
+    def set_exposure(self, value):
+        self.camera.set_exposure(value)
+
     def stop(self):
         self.thread.stop()
         self.thread.join()

@@ -61,6 +61,12 @@ class IronInterfEnv(gym.Env):
     def enable_camera(self, enabled):
         self.camera_enabled = enabled
 
+    def set_exposure(self, value):
+        if not self.camera_enabled:
+            print('ERROR: enable camera first!')
+            return
+        self.camera.set_exposure(value)
+
     def set_calc_reward(self, method):
         if method == 'visib_minus_1':
             self._calc_reward = self._calc_reward_visib_minus_1
