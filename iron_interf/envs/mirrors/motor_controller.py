@@ -14,7 +14,7 @@ def wait_for_motor(motor_id):
 
 def move_relative(motor_id, value):
     move_motor_cmd = '{}PR{}'.format(motor_id, value)
-    print(move_motor_cmd)
+    #print(move_motor_cmd)
     _controller.command(move_motor_cmd)
 
 

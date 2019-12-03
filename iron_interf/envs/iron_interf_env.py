@@ -94,7 +94,7 @@ class IronInterfEnv(gym.Env):
         #print('step ', actions)
         self.n_steps += 1
 
-        print('actions', actions)
+        #print('actions', actions)
         actions = self._to_motor_units(actions)
 
         for action_id, action_value in enumerate(actions):
@@ -104,15 +104,24 @@ class IronInterfEnv(gym.Env):
         print('relative m1_x = {}, m1_y = {}, m2_x = {}, m2_y = {}'.format(
             self.mirror1_screw_x, self.mirror1_screw_y, self.mirror2_screw_x, self.mirror2_screw_y)
         )
-        print('absolute init_m1_x = {}, init_m1_y = {}, init_m2_x = {}, init_m2_y = {}'.format(
-            self.init_mirror1_screw_x, self.init_mirror1_screw_y, self.init_mirror2_screw_x, self.init_mirror2_screw_y)
-        )
+        #print('absolute init_m1_x = {}, init_m1_y = {}, init_m2_x = {}, init_m2_y = {}'.format(
+        #    self.init_mirror1_screw_x, self.init_mirror1_screw_y, self.init_mirror2_screw_x, self.init_mirror2_screw_y)
+        #)
 
         start = tm.time()
-        self.state, tot_intens = self.calc_state()
+        self.state, tot_intens_camera, tot_intens_device = self.calc_state()
+
         end = tm.time()
         self.info['state_calc_time'] = end - start
-        reward = self._calc_reward(tot_intens)
+
+        visib_device = self._calc_visib_device(tot_intens_device)
+        self.info['visib_device'] = visib_device
+        visib_camera = self._calc_visib_camera(tot_intens_camera)
+        self.info['visib_camera'] = visib_camera
+
+        self.info['tot_intens_device'] = tot_intens_device
+
+        reward = self._calc_reward(visib_camera)
 
         return self.state, reward, self.game_over(), self.info
 
@@ -139,14 +148,23 @@ class IronInterfEnv(gym.Env):
 
         actions = self._to_motor_units(actions)
         actions += reset_to_zero_action
-        print('reset actions: ', actions)
+        #print('reset actions: ', actions)
         for action_id, action_value in enumerate(actions):
             self._take_action(action_id, action_value)
             # wait until actions are done
             self._wait_for_motors()
 
-        self.state, tot_intens = self.calc_state()
-        self.visib = self._calc_visib(tot_intens)
+        self.state, tot_intens_camera, tot_intens_device = self.calc_state()
+
+        visib_device = self._calc_visib_device(tot_intens_device)
+        self.info['visib_device'] = visib_device
+        visib_camera = self._calc_visib_camera(tot_intens_camera)
+        self.info['visib_camera'] = visib_camera
+
+        self.info['tot_intens_device'] = tot_intens_device
+
+
+        self.visib = visib_camera
 
         return self.state
 
@@ -188,6 +206,7 @@ class IronInterfEnv(gym.Env):
             #)
             #value = mirror1_screw_y - self.mirror1_screw_y
             #self.mirror1_screw_y = mirror1_screw_y
+            self.mirror1_screw_y += value
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_y'],
                 value=int(value)
@@ -200,6 +219,7 @@ class IronInterfEnv(gym.Env):
             #)
             #value = mirror1_screw_x - self.mirror1_screw_x
             #self.mirror1_screw_x = mirror1_screw_x
+            self.mirror1_screw_x += value
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_x'],
                 value=int(value)
@@ -212,6 +232,7 @@ class IronInterfEnv(gym.Env):
             #)
             #value = mirror2_screw_y - self.mirror2_screw_y
             #self.mirror2_screw_y = mirror2_screw_y
+            self.mirror2_screw_y += value
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_y'],
                 value=int(value)
@@ -224,6 +245,7 @@ class IronInterfEnv(gym.Env):
             #)
             #value = mirror2_screw_x - self.mirror2_screw_x
             #self.mirror2_screw_x = mirror2_screw_x
+            self.mirror2_screw_x += value
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_x'],
                 value=int(value)
@@ -235,18 +257,16 @@ class IronInterfEnv(gym.Env):
         for motor_id in IronInterfEnv.mirror2motor.values():
             wait_for_motor(motor_id)
 
-    def _calc_reward_visib_minus_1(self, tot_intens):
-        self.visib = self._calc_visib(tot_intens)
-        self.info['visib'] = self.visib
+    def _calc_reward_visib_minus_1(self, visib):
+        self.visib = visib
         return self.visib - 1.
 
-    def _calc_reward_delta_visib(self, tot_intens):
+    def _calc_reward_delta_visib(self, visib):
         prev_visib = self.visib
-        self.visib = self._calc_visib(tot_intens)
-        self.info['visib'] = self.visib
+        self.visib = visib
         return self.visib - prev_visib
 
-    def _calc_visib(self, tot_intens):
+    def _calc_visib_camera(self, tot_intens):
         def visib(vmin, vmax):
             return (vmax - vmin) / (vmax + vmin)
 
@@ -255,6 +275,9 @@ class IronInterfEnv(gym.Env):
         self.info['imax'] = imax
 
         return visib(float(min(tot_intens)), float(max(tot_intens)))
+
+    def _calc_visib_device(self, tot_intens):
+        return 0
 
     def game_over(self):
         return self.visib > IronInterfEnv.done_visibility or \

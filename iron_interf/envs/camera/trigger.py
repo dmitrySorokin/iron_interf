@@ -9,19 +9,25 @@ class SerialPortReader(object):
         self.dev = serial.Serial()
         self.dev.setPort(name)
 
-    def get_data(self):
+    def get_data(self, verbose=False):
+        """
+        arduino convention: "value_generator, value_detector"
+        """
         while True:
             while self.dev.inWaiting() > 0:
                 line = self.dev.readline()
                 try:
-                    decoded = line.decode()
-                    decoded = decoded.strip()
-                    try:
-                        yield float(decoded)
-                    except ValueError:
-                        print('could not convert {} to float!'.format(decoded))
+                    decoded = line.decode().strip()
+                    decoded = decoded.split(',')
+                    if len(decoded) == 2:
+                        try:
+                            yield float(decoded[0]), float(decoded[1])
+                        except ValueError:
+                            if verbose:
+                                print('could not convert "{}" to float!'.format(decoded))
                 except UnicodeDecodeError:
-                    print('can not decode {}'.format(line))
+                    if verbose:
+                        print('can not decode {}'.format(line))
 
     def open(self):
         self.dev.open()
@@ -45,7 +51,7 @@ class CameraTrigger(object):
         self.reader.open()
         begin = time.time()
         max_value = -1
-        for value in self.reader.get_data():
+        for value, value_detector in self.reader.get_data():
             print(value, 'time', time.time() - begin)
             # something strange appears
             if value > max_value and value < 1000:
@@ -57,11 +63,8 @@ class CameraTrigger(object):
         self.threshold *= max_value
         self.reader.close()
 
-    def can_start(self):
-        self.reader.open()
-        self.reader.flush()
-
-        for value in self.reader.get_data():
+    def is_generator_max(self):
+        for value, value_detector in self.reader.get_data():
             self.buffer = self.buffer[1:] + [value]
             if value > self.threshold and self.buffer[0] - self.buffer[-1] > 0:
                 if not self.triggered:
@@ -70,6 +73,19 @@ class CameraTrigger(object):
             else:
                 self.triggered = False
                 yield False
+
+    def get_intens(self):
+        res = []
+        for value_generator, value in self.reader.get_data():
+            res.append(value)
+            if len(res) == 120:
+                break
+
+        return res
+
+    def start(self):
+        self.reader.open()
+        self.reader.flush()
 
     def stop(self):
         self.reader.close()

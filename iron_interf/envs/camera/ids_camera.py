@@ -62,6 +62,9 @@ class IDSCamera(object):
         self.trigger = CameraTrigger()
         self.trigger.init()
 
+        self.height = h_points
+        self.width = w_points
+
     def set_exposure(self, value):
         self.camera.set_exposure(value)
 
@@ -71,12 +74,14 @@ class IDSCamera(object):
         self.camera.stop_video()
         self.camera.exit()
 
-    def calc_state(self):
+    def calc_state(self, verbose=True):
         begin_sync = time.time()
         self.wait_for_start()
         end_sync = time.time()
-        print('SYNC_TIME', end_sync - begin_sync)
+        if verbose:
+            print('SYNC_TIME', end_sync - begin_sync)
 
+        self.trigger.start()
         begin_film = time.time()
         self.image_handle.start()
         while not self.image_handle.is_ready():
@@ -84,18 +89,30 @@ class IDSCamera(object):
         images = np.array(self.image_handle.images)
         self.image_handle.reset()
         end_film = time.time()
-        print('camera time', end_film - begin_film)
+        if verbose:
+            print('CAMERA_TIME', end_film - begin_film)
 
         tot_intens = [np.sum(image) for image in images]
 
-        return images, tot_intens
+        tot_intens_device = self.trigger.get_intens()
+        self.trigger.stop()
+
+        return self._resize(images), tot_intens, tot_intens_device
 
     def image(self):
         return self.image_handle.image()
 
     def wait_for_start(self):
-        for res in self.trigger.can_start():
+        self.trigger.start()
+        for res in self.trigger.is_generator_max():
             if res:
                 break
         self.trigger.stop()
 
+    def _resize(self, images):
+        n_imgs = images.shape[0]
+        result = np.zeros(shape=(n_imgs, self.height, self.width), dtype=np.uint8)
+        for i, img in enumerate(images):
+            img = cv2.cv2.resize(img, (self.height, self.width))
+            result[i] = img
+        return result
