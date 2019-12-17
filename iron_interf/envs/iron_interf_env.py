@@ -101,21 +101,20 @@ class IronInterfEnv(gym.Env):
             self._take_action(action_id, action_value)
             self._wait_for_motors()
 
-        print('relative m1_x = {}, m1_y = {}, m2_x = {}, m2_y = {}'.format(
-            self.mirror1_screw_x, self.mirror1_screw_y, self.mirror2_screw_x, self.mirror2_screw_y)
-        )
+        self.print_rel_state()
         #print('absolute init_m1_x = {}, init_m1_y = {}, init_m2_x = {}, init_m2_y = {}'.format(
         #    self.init_mirror1_screw_x, self.init_mirror1_screw_y, self.init_mirror2_screw_x, self.init_mirror2_screw_y)
         #)
 
         start = tm.time()
-        self.state, tot_intens_camera, tot_intens_device = self.calc_state()
+        self.state, tot_intens_camera, (tot_intens_device, second_sin_start) = self.calc_state()
 
         end = tm.time()
         self.info['state_calc_time'] = end - start
 
         visib_device = self._calc_visib_device(tot_intens_device)
         self.info['visib_device'] = visib_device
+        self.info['second_sin_start'] = second_sin_start
         visib_camera = self._calc_visib_camera(tot_intens_camera)
         self.info['visib_camera'] = visib_camera
 
@@ -138,11 +137,6 @@ class IronInterfEnv(gym.Env):
             [self.mirror1_screw_y, self.mirror1_screw_x, self.mirror2_screw_y, self.mirror2_screw_x]
         )
 
-        self.mirror1_screw_y = 0
-        self.mirror1_screw_x = 0
-        self.mirror2_screw_y = 0
-        self.mirror2_screw_x = 0
-
         if actions is None:
             actions = IronInterfEnv.action_space.sample()
 
@@ -154,16 +148,18 @@ class IronInterfEnv(gym.Env):
             # wait until actions are done
             self._wait_for_motors()
 
-        self.state, tot_intens_camera, tot_intens_device = self.calc_state()
+        self.print_rel_state()
+
+        self.state, tot_intens_camera, (tot_intens_device, second_sin_start) = self.calc_state()
 
         visib_device = self._calc_visib_device(tot_intens_device)
         self.info['visib_device'] = visib_device
+        self.info['secon_sin_start'] = second_sin_start
+
         visib_camera = self._calc_visib_camera(tot_intens_camera)
         self.info['visib_camera'] = visib_camera
 
         self.info['tot_intens_device'] = tot_intens_device
-
-
         self.visib = visib_camera
 
         return self.state
@@ -199,59 +195,59 @@ class IronInterfEnv(gym.Env):
         :return:
         """
         if action_id == 0:
-            #mirror1_screw_y = np.clip(
-            #    self.mirror1_screw_y + value,
-            #    -self.far_mirror_max_screw_value,
-            #    self.far_mirror_max_screw_value
-            #)
-            #value = mirror1_screw_y - self.mirror1_screw_y
-            #self.mirror1_screw_y = mirror1_screw_y
-            self.mirror1_screw_y += value
+            mirror1_screw_y = np.clip(
+                self.mirror1_screw_y + value,
+                -self.far_mirror_max_screw_value,
+                self.far_mirror_max_screw_value
+            )
+            value_clipped = mirror1_screw_y - self.mirror1_screw_y
+            self.mirror1_screw_y = mirror1_screw_y
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_y'],
-                value=int(value)
+                value=int(value_clipped)
             )
         elif action_id == 1:
-            #mirror1_screw_x = np.clip(
-            #    self.mirror1_screw_x + value,
-            #    -self.far_mirror_max_screw_value,
-            #    self.far_mirror_max_screw_value
-            #)
-            #value = mirror1_screw_x - self.mirror1_screw_x
-            #self.mirror1_screw_x = mirror1_screw_x
-            self.mirror1_screw_x += value
+            mirror1_screw_x = np.clip(
+                self.mirror1_screw_x + value,
+                -self.far_mirror_max_screw_value,
+                self.far_mirror_max_screw_value
+            )
+            value_clipped = mirror1_screw_x - self.mirror1_screw_x
+            self.mirror1_screw_x = mirror1_screw_x
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_x'],
-                value=int(value)
+                value=int(value_clipped)
             )
         elif action_id == 2:
-            #mirror2_screw_y = np.clip(
-            #    self.mirror2_screw_y + value,
-            #    -self.near_mirror_max_screw_value,
-            #    self.near_mirror_max_screw_value
-            #)
-            #value = mirror2_screw_y - self.mirror2_screw_y
-            #self.mirror2_screw_y = mirror2_screw_y
-            self.mirror2_screw_y += value
+            mirror2_screw_y = np.clip(
+                self.mirror2_screw_y + value,
+                -self.near_mirror_max_screw_value,
+                self.near_mirror_max_screw_value
+            )
+            value_clipped = mirror2_screw_y - self.mirror2_screw_y
+            self.mirror2_screw_y = mirror2_screw_y
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_y'],
-                value=int(value)
+                value=int(value_clipped)
             )
         elif action_id == 3:
-            #mirror2_screw_x = np.clip(
-            #    self.mirror2_screw_x + value,
-            #    -self.near_mirror_max_screw_value,
-            #    self.near_mirror_max_screw_value
-            #)
-            #value = mirror2_screw_x - self.mirror2_screw_x
-            #self.mirror2_screw_x = mirror2_screw_x
-            self.mirror2_screw_x += value
+            mirror2_screw_x = np.clip(
+                self.mirror2_screw_x + value,
+                -self.near_mirror_max_screw_value,
+                self.near_mirror_max_screw_value
+            )
+            value_clipped = mirror2_screw_x - self.mirror2_screw_x
+            self.mirror2_screw_x = mirror2_screw_x
             move_relative(
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_x'],
-                value=int(value)
+                value=int(value_clipped)
             )
         else:
             assert False, 'unknown action = {}'.format(action_id)
+
+        if value != value_clipped:
+            print('WARNING: step overflow')
+            self.print_rel_state()
 
     def _wait_for_motors(self):
         for motor_id in IronInterfEnv.mirror2motor.values():
@@ -277,7 +273,13 @@ class IronInterfEnv(gym.Env):
         return visib(float(min(tot_intens)), float(max(tot_intens)))
 
     def _calc_visib_device(self, tot_intens):
-        return 0
+        vals = sorted(tot_intens)
+        print('DEVICE VISIB: ', vals[0], vals[-1])
+        npoints = 40
+        minv = np.sum(vals[:npoints]) / npoints
+        maxv = np.sum(vals[-npoints:]) / npoints
+
+        return (maxv - minv) / (maxv + minv - 50)
 
     def game_over(self):
         return self.visib > IronInterfEnv.done_visibility or \
@@ -300,3 +302,8 @@ class IronInterfEnv(gym.Env):
         if self.camera_enabled:
             return self.camera.calc_state()
         return None, [1] * IronInterfEnv.n_frames
+
+    def print_rel_state(self):
+        print('relative m1_x = {}, m1_y = {}, m2_x = {}, m2_y = {}'.format(
+            self.mirror1_screw_x, self.mirror1_screw_y, self.mirror2_screw_x, self.mirror2_screw_y)
+        )

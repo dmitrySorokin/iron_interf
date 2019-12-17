@@ -43,7 +43,7 @@ class SerialPortReader(object):
 class CameraTrigger(object):
     def __init__(self, buff_size=2, threshold_coeff=0.9):
         self.reader = SerialPortReader()
-        self.buffer = [0.0] * buff_size
+        self.buff_size = buff_size
         self.threshold = threshold_coeff
         self.triggered = False
 
@@ -64,9 +64,10 @@ class CameraTrigger(object):
         self.reader.close()
 
     def is_generator_max(self):
+        buffer = [0.0] * self.buff_size
         for value, value_detector in self.reader.get_data():
-            self.buffer = self.buffer[1:] + [value]
-            if value > self.threshold and self.buffer[0] - self.buffer[-1] > 0:
+            buffer = buffer[1:] + [value]
+            if value > self.threshold and buffer[0] - buffer[-1] > 0:
                 if not self.triggered:
                     self.triggered = True
                     yield True
@@ -75,13 +76,17 @@ class CameraTrigger(object):
                 yield False
 
     def get_intens(self):
-        res = []
+        res, second_sin_start = [], 60
+        buffer = [0.0] * self.buff_size
         for value_generator, value in self.reader.get_data():
+            buffer = buffer[1:] + [value_generator]
             res.append(value)
-            if len(res) == 120:
+            if value_generator > self.threshold and buffer[0] - buffer[-1] > 0:
+                second_sin_start = len(res)
+            if len(res) == 300:
                 break
 
-        return res
+        return res, second_sin_start
 
     def start(self):
         self.reader.open()
