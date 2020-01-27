@@ -83,7 +83,7 @@ class CameraTrigger(object):
             res.append(value)
             if value_generator > self.threshold and buffer[0] - buffer[-1] > 0:
                 second_sin_start = len(res)
-            if len(res) == 300:
+            if len(res) == 200:
                 break
 
         return res, second_sin_start

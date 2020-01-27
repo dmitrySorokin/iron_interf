@@ -90,6 +90,12 @@ class IronInterfEnv(gym.Env):
     def seed(self, seed=None):
         self.action_space.seed(seed)
 
+    def reset_mirror_positions(self):
+        self.mirror1_screw_y = 0
+        self.mirror1_screw_x = 0
+        self.mirror2_screw_y = 0
+        self.mirror2_screw_x = 0
+
     def step(self, actions):
         #print('step ', actions)
         self.n_steps += 1
@@ -267,17 +273,20 @@ class IronInterfEnv(gym.Env):
             return (vmax - vmin) / (vmax + vmin)
 
         imin, imax = min(tot_intens), max(tot_intens)
-        self.info['imin'] = imin
-        self.info['imax'] = imax
+
 
         return visib(float(min(tot_intens)), float(max(tot_intens)))
 
     def _calc_visib_device(self, tot_intens):
         vals = sorted(tot_intens)
+
         print('DEVICE VISIB: ', vals[0], vals[-1])
-        npoints = 40
+        npoints = 27
         minv = np.sum(vals[:npoints]) / npoints
         maxv = np.sum(vals[-npoints:]) / npoints
+
+        self.info['imin'] = minv
+        self.info['imax'] = maxv
 
         return (maxv - minv) / (maxv + minv - 50)
 
