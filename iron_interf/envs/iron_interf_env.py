@@ -3,18 +3,19 @@ from matplotlib import pyplot as plt
 import numpy as np
 import time as tm
 
-from .mirrors.motor_controller import get_position, get_home_position, set_home_position, wait_for_motor, move_absolute, move_relative
+from .mirrors.motor_controller import get_position, get_home_position, wait_for_motor, move_relative, ControllerType
 from .camera.ids_camera import IDSCamera
 
 
 class IronInterfEnv(gym.Env):
     n_points = 64
     n_frames = 16
-    n_actions = 4
+    n_actions = 5
 
     # mirror screw step l / L, (ratio of delta screw length to vertical distance)
     far_mirror_max_screw_value = 5000
     near_mirror_max_screw_value = 2500
+    lens_max_screw_value = 1000000
 
     metadata = {'render.modes': ['human', 'rgb_array', 'last_state']}
     reward_range = (0, 1)
@@ -30,23 +31,34 @@ class IronInterfEnv(gym.Env):
         'mirror1_screw_x': 1,
         'mirror1_screw_y': 2,
         'mirror2_screw_x': 3,
-        'mirror2_screw_y': 4
+        'mirror2_screw_y': 4,
+    }
+
+    lens2motor = {
+        'lens_screw': 1
     }
 
     def __init__(self):
-        self.init_mirror1_screw_x = get_position(IronInterfEnv.mirror2motor['mirror1_screw_x'])
-        self.init_mirror1_screw_y = get_position(IronInterfEnv.mirror2motor['mirror1_screw_y'])
-        self.init_mirror2_screw_x = get_position(IronInterfEnv.mirror2motor['mirror2_screw_x'])
-        self.init_mirror2_screw_y = get_position(IronInterfEnv.mirror2motor['mirror2_screw_y'])
+        self.init_mirror1_screw_x = get_position(ControllerType.MIRROR, IronInterfEnv.mirror2motor['mirror1_screw_x'])
+        self.init_mirror1_screw_y = get_position(ControllerType.MIRROR, IronInterfEnv.mirror2motor['mirror1_screw_y'])
+        self.init_mirror2_screw_x = get_position(ControllerType.MIRROR, IronInterfEnv.mirror2motor['mirror2_screw_x'])
+        self.init_mirror2_screw_y = get_position(ControllerType.MIRROR, IronInterfEnv.mirror2motor['mirror2_screw_y'])
+        self.init_lens_screw = get_position(ControllerType.LENS, IronInterfEnv.lens2motor['lens_screw'])
 
         for key in IronInterfEnv.mirror2motor:
             motor_id = IronInterfEnv.mirror2motor[key]
-            print('{}, home {}; current {}'.format(key, get_home_position(motor_id), get_position(motor_id)))
+            print('{}, home {}; current {}'.format(
+                key, get_home_position(ControllerType.MIRROR, motor_id), get_position(ControllerType.MIRROR, motor_id)))
+        for key in IronInterfEnv.lens2motor:
+            motor_id = IronInterfEnv.lens2motor[key]
+            print('{}, home {}; current {}'.format(
+                key, get_home_position(ControllerType.LENS, motor_id), get_position(ControllerType.LENS, motor_id)))
 
         self.mirror1_screw_x = 0
         self.mirror1_screw_y = 0
         self.mirror2_screw_x = 0
         self.mirror2_screw_y = 0
+        self.lens_screw = 0
 
         self.camera = IDSCamera(IronInterfEnv.n_frames, IronInterfEnv.n_points, IronInterfEnv.n_points)
 
@@ -84,7 +96,9 @@ class IronInterfEnv(gym.Env):
             (ord('i'),): 4,
             (ord('k'),): 5,
             (ord('j'),): 6,
-            (ord('l'),): 7
+            (ord('l'),): 7,
+            (ord('n'),): 8,
+            (ord('m'),): 9
         }
 
     def seed(self, seed=None):
@@ -95,6 +109,7 @@ class IronInterfEnv(gym.Env):
         self.mirror1_screw_x = 0
         self.mirror2_screw_y = 0
         self.mirror2_screw_x = 0
+        self.lens_screw = 0
 
     def step(self, actions):
         #print('step ', actions)
@@ -140,7 +155,7 @@ class IronInterfEnv(gym.Env):
         self.info = {}
 
         reset_to_zero_action = -np.array(
-            [self.mirror1_screw_y, self.mirror1_screw_x, self.mirror2_screw_y, self.mirror2_screw_x]
+            [self.mirror1_screw_y, self.mirror1_screw_x, self.mirror2_screw_y, self.mirror2_screw_x, self.lens_screw]
         )
 
         if actions is None:
@@ -185,12 +200,14 @@ class IronInterfEnv(gym.Env):
             return None
 
     def _to_motor_units(self, actions):
-        result = [0] * 4
+        result = [0] * 5
         for action_id, value in enumerate(actions):
             if action_id in (0, 1):
                 result[action_id] = int(value * self.far_mirror_max_screw_value)
             elif action_id in (2, 3):
                 result[action_id] = int(value * self.near_mirror_max_screw_value)
+            elif action_id in (4,):
+                result[action_id] = int(value * self.lens_max_screw_value)
             else:
                 assert False, 'Unknown actions {}'.format(actions)
         return result
@@ -209,6 +226,7 @@ class IronInterfEnv(gym.Env):
             value_clipped = mirror1_screw_y - self.mirror1_screw_y
             self.mirror1_screw_y = mirror1_screw_y
             move_relative(
+                controller_type=ControllerType.MIRROR,
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_y'],
                 value=int(value_clipped)
             )
@@ -221,6 +239,7 @@ class IronInterfEnv(gym.Env):
             value_clipped = mirror1_screw_x - self.mirror1_screw_x
             self.mirror1_screw_x = mirror1_screw_x
             move_relative(
+                controller_type=ControllerType.MIRROR,
                 motor_id=IronInterfEnv.mirror2motor['mirror1_screw_x'],
                 value=int(value_clipped)
             )
@@ -233,6 +252,7 @@ class IronInterfEnv(gym.Env):
             value_clipped = mirror2_screw_y - self.mirror2_screw_y
             self.mirror2_screw_y = mirror2_screw_y
             move_relative(
+                controller_type=ControllerType.MIRROR,
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_y'],
                 value=int(value_clipped)
             )
@@ -245,7 +265,21 @@ class IronInterfEnv(gym.Env):
             value_clipped = mirror2_screw_x - self.mirror2_screw_x
             self.mirror2_screw_x = mirror2_screw_x
             move_relative(
+                controller_type=ControllerType.MIRROR,
                 motor_id=IronInterfEnv.mirror2motor['mirror2_screw_x'],
+                value=int(value_clipped)
+            )
+        elif action_id == 4:
+            lens_screw = np.clip(
+                self.lens_screw + value,
+                -self.lens_max_screw_value,
+                self.lens_max_screw_value
+            )
+            value_clipped = lens_screw - self.lens_screw
+            self.lens_screw = lens_screw
+            move_relative(
+                controller_type=ControllerType.LENS,
+                motor_id=IronInterfEnv.lens2motor['lens_screw'],
                 value=int(value_clipped)
             )
         else:
@@ -257,7 +291,9 @@ class IronInterfEnv(gym.Env):
 
     def _wait_for_motors(self):
         for motor_id in IronInterfEnv.mirror2motor.values():
-            wait_for_motor(motor_id)
+            wait_for_motor(ControllerType.MIRROR, motor_id)
+        for motor_id in IronInterfEnv.lens2motor.values():
+            wait_for_motor(ControllerType.LENS, motor_id)
 
     def _calc_reward_visib_minus_1(self, visib):
         self.visib = visib
@@ -304,7 +340,8 @@ class IronInterfEnv(gym.Env):
             self.mirror1_screw_y * self.far_mirror_max_screw_value,
             self.mirror1_screw_x * self.far_mirror_max_screw_value,
             self.mirror2_screw_y * self.near_mirror_max_screw_value,
-            self.mirror2_screw_x * self.near_mirror_max_screw_value
+            self.mirror2_screw_x * self.near_mirror_max_screw_value,
+            self.lens_screw * self.lens_max_screw_value
         ]))
 
     def calc_state(self):
@@ -313,6 +350,6 @@ class IronInterfEnv(gym.Env):
         return None, [1] * IronInterfEnv.n_frames
 
     def print_rel_state(self):
-        print('relative m1_x = {}, m1_y = {}, m2_x = {}, m2_y = {}'.format(
-            self.mirror1_screw_x, self.mirror1_screw_y, self.mirror2_screw_x, self.mirror2_screw_y)
+        print('relative m1_x = {}, m1_y = {}, m2_x = {}, m2_y = {}, lens = {}'.format(
+            self.mirror1_screw_x, self.mirror1_screw_y, self.mirror2_screw_x, self.mirror2_screw_y, self.lens_screw)
         )

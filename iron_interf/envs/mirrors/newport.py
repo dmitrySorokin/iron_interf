@@ -61,8 +61,7 @@ class Controller(object):
         >>> controller.start_console()
     """
 
-
-    def __init__(self, idProduct, idVendor):
+    def __init__(self, idProduct, idVendor, address):
         """Initialize the Picomotor class with the spec's of the attached device
 
         Call self._connect to set up communication with usb device and endpoints 
@@ -73,6 +72,7 @@ class Controller(object):
         """
         self.idProduct = idProduct
         self.idVendor = idVendor
+        self.address = address
         self._connect()
 
     def _connect(self):
@@ -89,7 +89,8 @@ class Controller(object):
         # find the device
         self.dev = usb.core.find(
                         idProduct=self.idProduct,
-                        idVendor=self.idVendor
+                        idVendor=self.idVendor,
+                        address=self.address
                         )
        
         if self.dev is None:
@@ -285,7 +286,7 @@ if __name__ == '__main__':
     idVendor = int(idVendor, 16)
 
     # Initialize controller and start console
-    controller = Controller(idProduct=idProduct, idVendor=idVendor)
+    controller = Controller(idProduct=idProduct, idVendor=idVendor, address=20)
     controller.start_console()
 
 
