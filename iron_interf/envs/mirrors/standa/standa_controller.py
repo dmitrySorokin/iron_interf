@@ -40,7 +40,7 @@ class StandaController(object):
     def __init__(self):
         self.lib = pyximc.lib
         self.device_id = _open(self.lib)
-        self.set_current(100)
+        self.set_current(1000)
         self.set_feedback(pyximc.FeedbackType.FEEDBACK_NONE)
         self.set_microstep_mode(pyximc.MicrostepMode.MICROSTEP_MODE_FRAC_256)
 

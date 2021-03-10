@@ -5,7 +5,7 @@ import time
 
 
 class SerialPortReader(object):
-    def __init__(self, name='/dev/ttyACM0'):
+    def __init__(self, name='/dev/ttyACM2'):
         self.dev = serial.Serial()
         self.dev.setPort(name)
 
