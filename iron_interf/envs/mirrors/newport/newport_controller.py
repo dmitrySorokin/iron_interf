@@ -4,7 +4,7 @@ from .newport_api import Controller
 class NewportController(object):
     def __init__(self):
         # run lsusb to get the address
-        self._mirror_controller = Controller(idProduct=0x4000, idVendor=0x104d, address=13)
+        self._mirror_controller = Controller(idProduct=0x4000, idVendor=0x104d, address=8)
 
     def wait_for_motor(self, motor_id):
         motor_done_cmd = '{}MD?'.format(motor_id)

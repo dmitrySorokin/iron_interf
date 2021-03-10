@@ -15,7 +15,7 @@ class IronInterfEnv(gym.Env):
     # mirror screw step l / L, (ratio of delta screw length to vertical distance)
     far_mirror_max_screw_value = 5000
     near_mirror_max_screw_value = 2500
-    lens_max_screw_value = 1000000
+    lens_max_screw_value = 6000
 
     metadata = {'render.modes': ['human', 'rgb_array', 'last_state']}
     reward_range = (0, 1)
@@ -129,7 +129,6 @@ class IronInterfEnv(gym.Env):
 
         start = tm.time()
         self.state, tot_intens_camera, (tot_intens_device, second_sin_start) = self.calc_state()
-
         end = tm.time()
         self.info['state_calc_time'] = end - start
 
@@ -183,6 +182,7 @@ class IronInterfEnv(gym.Env):
         self.info['tot_intens_device'] = tot_intens_device
         self.visib = visib_camera
 
+        print('reset done')
         return self.state
 
     def render(self, mode='human', close=False):

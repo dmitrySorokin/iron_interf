@@ -1,4 +1,4 @@
-import pyximc
+from . import pyximc
 import ctypes
 
 
