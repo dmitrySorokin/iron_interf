@@ -5,7 +5,8 @@ import time
 
 
 class SerialPortReader(object):
-    def __init__(self, name='/dev/ttyACM2'):
+    # Changed from 2 to 1
+    def __init__(self, name='/dev/ttyACM0'):
         self.dev = serial.Serial()
         self.dev.setPort(name)
 
@@ -41,7 +42,7 @@ class SerialPortReader(object):
 
 
 class CameraTrigger(object):
-    def __init__(self, buff_size=2, threshold_coeff=0.9):
+    def __init__(self, buff_size=2, threshold_coeff=0.8):
         self.reader = SerialPortReader()
         self.buff_size = buff_size
         self.threshold = threshold_coeff
@@ -64,6 +65,7 @@ class CameraTrigger(object):
         self.reader.close()
 
     def is_generator_max(self):
+        # yield True
         buffer = [0.0] * self.buff_size
         for value, value_detector in self.reader.get_data():
             buffer = buffer[1:] + [value]
@@ -83,7 +85,7 @@ class CameraTrigger(object):
             res.append(value)
             if value_generator > self.threshold and buffer[0] - buffer[-1] > 0:
                 second_sin_start = len(res)
-            if len(res) == 120:
+            if len(res) == 120 * 3:
                 break
 
         return res, second_sin_start

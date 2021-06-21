@@ -37,6 +37,7 @@ from .pyueye_example_utils import (uEyeException, Rect, get_bits_per_pixel,
 class Camera:
     def __init__(self, device_id=0):
         self.h_cam = ueye.HIDS(device_id)
+        self.current_fps = None
         self.img_buffers = []
 
     def __enter__(self):
@@ -137,3 +138,60 @@ class Camera:
         check(ueye.is_ImageFormat(self.h_cam, ueye.IMGFRMT_CMD_GET_LIST,
                                   format_list, ueye.sizeof(format_list)))
         return format_list
+
+    # TODO rewrite
+    def set_fps(self, fps):
+        """
+        Set the fps.
+        Returns
+        =======
+        fps: number
+            Real fps, can be slightly different than the asked one.
+        """
+        # checking available fps
+        mini, maxi = self.get_fps_range()
+        if fps < mini:
+            print(f'Warning: Specified fps ({fps:.2f}) not in possible range:'
+                  f' [{mini:.2f}, {maxi:.2f}].'
+                  f' fps has been set to {mini:.2f}.')
+            fps = mini
+        if fps > maxi:
+            print(f'Warning: Specified fps ({fps:.2f}) not in possible range:'
+                  f' [{mini:.2f}, {maxi:.2f}].'
+                  f' fps has been set to {maxi:.2f}.')
+            fps = maxi
+        fps = ueye.c_double(fps)
+        new_fps = ueye.c_double()
+        check(ueye.is_SetFrameRate(self.h_cam, fps, new_fps))
+        self.current_fps = float(new_fps)
+        return new_fps
+
+    def get_fps(self):
+        """
+        Get the current fps.
+        Returns
+        =======
+        fps: number
+            Current fps.
+        """
+        if self.current_fps is not None:
+            return self.current_fps
+        fps = ueye.c_double()
+        check(ueye.is_GetFramesPerSecond(self.h_cam, fps))
+        return fps
+
+    def get_fps_range(self):
+        """
+        Get the current fps available range.
+        Returns
+        =======
+        fps_range: 2x1 array
+            range of available fps
+        """
+        mini = ueye.c_double()
+        maxi = ueye.c_double()
+        interv = ueye.c_double()
+        check(ueye.is_GetFrameTimeRange(
+            self.h_cam,
+            mini, maxi, interv))
+        return [float(1 / maxi), float(1 / mini)]

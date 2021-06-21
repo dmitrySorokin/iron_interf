@@ -33,14 +33,14 @@ class _ImageHandle(object):
         self.is_started = False
 
     def is_ready(self):
-        threading.Lock()
+        # threading.Lock()
         return len(self.images) >= self.capacity
 
     def start(self):
         self.is_started = True
 
     def image(self):
-        threading.Lock()
+        # threading.Lock()
         while self.last_image is None:
             pass
         return self.last_image
@@ -52,8 +52,11 @@ class IDSCamera(object):
         self.camera = Camera()
         self.camera.init()
         self.camera.set_colormode(ueye.IS_CM_SENSOR_RAW8)
+        print('FPS range: ',self.camera.get_fps_range())
+        self.camera.set_fps(16)
+        print('Current FPS: ', self.camera.get_fps())
         #self.camera.set_aoi(0, 0, h_points, w_points)
-        self.camera.alloc()
+        self.camera.alloc(1)
         self.camera.capture_video()
         self.thread = FrameThread(self.camera, self.image_handle)
         self.thread.timeout = 200

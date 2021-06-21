@@ -159,6 +159,8 @@ class IronInterfEnv(gym.Env):
 
         if actions is None:
             actions = IronInterfEnv.action_space.sample()
+            # Prevent from going out of scope
+            actions = np.clip(actions, -0.9, 0.9)
 
         actions = self._to_motor_units(actions)
         actions += reset_to_zero_action
@@ -317,14 +319,34 @@ class IronInterfEnv(gym.Env):
         vals = sorted(tot_intens)
 
         print('DEVICE VISIB: ', vals[0], vals[-1])
-        npoints = 27
+
+        npoints = 15
         minv = np.sum(vals[:npoints]) / npoints
         maxv = np.sum(vals[-npoints:]) / npoints
 
+        ## To measure dark
+        # alpha = 0.9
+        #
+        # try:
+        #     self.runing_mean = self.runing_mean * alpha + (1 - alpha) * np.mean(vals)
+        #     self.runing_median = self.runing_median * alpha + (1 - alpha) * np.median(vals)
+        #     # or getattr(self, 'big_object')
+        # except AttributeError:
+        #     self.runing_mean = np.mean(vals)
+        #     self.runing_median = np.median(vals)
+        #
+        # print(
+        #     'Min_v={}, Max_v={}, Avg_v={}, Median_v={}, vals_len={}'.format(minv, maxv, self.runing_mean, self.runing_median,
+        #                                                                     len(vals)))
+        #
+        # print('Min_v={}, Max_v={}, Avg_v={}, Median_v={}, vals_len={}'.format(minv, maxv, np.mean(vals), np.median(vals), len(vals)))
+
         self.info['imin'] = minv
         self.info['imax'] = maxv
+        # dark = 15
+        dark = 50
 
-        return (maxv - minv) / (maxv + minv - 50)
+        return (maxv - minv) / (maxv + minv - 2 * dark)
 
     def game_over(self):
         return self.visib > IronInterfEnv.done_visibility or \
